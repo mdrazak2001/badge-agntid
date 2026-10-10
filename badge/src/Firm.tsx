@@ -58,7 +58,7 @@ ${String(it.args.markdown ?? "").slice(0, 280)}` : null;
         <span className="call-who">{who?.name.split(" ")[0]}</span>
         <span className="call-tool">{prettyTool(it.tool)}</span>
         <span className={`verdict ${v}`}>
-          {v === "pending" ? "AgntID scanning…" : v === "deny" ? "BLOCKED" : v === "review" ? "REVIEW" : "ALLOWED"}
+          {v === "pending" ? "AgntID scanning…" : v === "deny" ? "BLOCKED" : v === "error" ? "TOOL ERROR" : v === "review" ? "REVIEW" : "ALLOWED"}
         </span>
       </div>
       <pre className="call-args">{argText}</pre>

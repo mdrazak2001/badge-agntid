@@ -20,7 +20,7 @@ export type Item =
       agent: string;
       tool: string;
       args: Record<string, unknown>;
-      verdict: "pending" | "allow" | "deny" | "review";
+      verdict: "pending" | "allow" | "deny" | "review" | "error";
       reason: string | null;
       steps: Step[];
       ms: number | null;

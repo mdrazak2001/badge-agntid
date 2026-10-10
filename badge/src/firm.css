@@ -204,3 +204,5 @@
 .heard .filed { margin-left: 4px; font-size: 12px; font-weight: 700; color: var(--ok); text-decoration: none; padding: 2px 8px; border-radius: 99px; background: #3ddc841a; border: 1px solid #3ddc8455; white-space: nowrap; }
 .heard .filed.fail { color: var(--bad); background: #ff4d5e14; border-color: #ff4d5e55; }
 .heard { flex-wrap: wrap; }
+.call.error { border-color: #ffffff2a; background: #ffffff08; }
+.verdict.error { background: #ffffff1a; color: #cfcfd6; }

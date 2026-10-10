@@ -41,12 +41,14 @@ function parseCall(msg) {
     policy: s.details?.policy_name ?? null,
     failedRules: s.details?.failed_rules ?? [],
   }));
-  const blocked = steps.find((s) => /fail|denied|block|reject/i.test(s.status));
+  // Only AgntID's own refusals count as "deny"; a tool that ran and failed is "error".
+  const blocked = steps.find((s) => s.step !== "tool_execution" && /fail|denied|block|reject/i.test(s.status));
   const isError = Boolean(msg.result?.isError);
-  const verdict = blocked || isError ? "deny" : steps.some((s) => s.status === "hitl") ? "review" : "allow";
+  const refused = /not authorize|request denied|cannot be attributed|policy/i.test(text) && !steps.some((s) => s.step === "tool_execution");
+  const verdict = blocked || refused ? "deny" : isError ? "error" : steps.some((s) => s.status === "hitl") ? "review" : "allow";
   return {
     verdict,
-    reason: blocked?.reason ?? (isError ? text.slice(0, 400) : null),
+    reason: blocked?.reason ?? (refused || isError ? text.slice(0, 400) : null),
     steps,
     eventId: flow?.event_id ?? null,
     durationMs: flow?.total_duration_ms ?? null,
@@ -127,9 +129,7 @@ const delegateTool = {
 
 // Each employee works in its own AgntID task (its request is the prompt the intent
 // model checks) under a delegation whose tool_allowlist is the employee's badge.
-let enforce = true;
-
-async function openBadge(mcp, employee, request, from) {
+async function openBadge(mcp, employee, request, from, enforce = true) {
   const taskId = `${employee.id}-${Date.now()}`;
   const delegationId = `${taskId}-badge`;
   await mcp.call("agntid_task_open", {
@@ -149,14 +149,14 @@ async function openBadge(mcp, employee, request, from) {
     tool_allowlist: enforce ? employee.toolAllowlist : null,
   });
   const ok = Boolean(r.result?.structuredContent?.result?.ok);
-  emit({ type: "task", taskId, agent: employee.id, request, from: from ?? null, badge: employee.toolAllowlist, ok });
+  emit({ type: "task", taskId, agent: employee.id, request, from: from ?? null, badge: enforce ? employee.toolAllowlist : null, ok });
   return { taskId, delegationId: ok ? delegationId : null };
 }
 
-async function runAgent({ mcp, tools, employee, request, from = null, depth = 0 }) {
+async function runAgent({ mcp, tools, employee, request, from = null, depth = 0, enforce = true }) {
   emit({ type: "active", agent: employee.id });
   if (from) emit({ type: "delegation", from, to: employee.id, request });
-  const { taskId, delegationId } = await openBadge(mcp, employee, request, from);
+  const { taskId, delegationId } = await openBadge(mcp, employee, request, from, enforce);
 
   const messages = [
     { role: "system", content: employee.system },
@@ -194,7 +194,7 @@ async function runAgent({ mcp, tools, employee, request, from = null, depth = 0 
         if (tc.function.name === "delegate") {
           const colleague = EMPLOYEES.find((e) => e.id === args.to && e.id !== employee.id);
           output = colleague
-            ? await runAgent({ mcp, tools, employee: colleague, request: args.request, from: employee.id, depth: depth + 1 })
+            ? await runAgent({ mcp, tools, employee: colleague, request: args.request, from: employee.id, depth: depth + 1, enforce })
             : "You cannot delegate to yourself or an unknown colleague.";
           emit({ type: "active", agent: employee.id });
         } else {
@@ -222,7 +222,7 @@ async function runAgent({ mcp, tools, employee, request, from = null, depth = 0 
   return last?.content ?? "(no answer)";
 }
 
-async function handlePrompt(text) {
+async function handlePrompt(text, enforce = true) {
   const mention = text.match(/@(\w+)/)?.[1]?.toLowerCase();
   const target = EMPLOYEES.find((e) => e.id === mention || e.name.split(" ")[0].toLowerCase() === mention);
   // No @mention in the group chat: every employee takes the message, one after another.
@@ -237,7 +237,7 @@ async function handlePrompt(text) {
       (t) => !GLUE.test(t.name) && !hidden.test(t.name) && (onSomeBadge.has(canonical(t.name)) || t.name.toLowerCase().startsWith("meeting_")),
     );
     for (const employee of team) {
-      await runAgent({ mcp, tools, employee, request: text.replace(/@\w+\s*/, ""), depth: target ? 0 : 1 });
+      await runAgent({ mcp, tools, employee, request: text.replace(/@\w+\s*/, ""), depth: target ? 0 : 1, enforce });
     }
   } catch (err) {
     emit({ type: "error", message: String(err?.message ?? err) });
@@ -253,8 +253,7 @@ wss.on("connection", (ws) => {
     const msg = JSON.parse(String(raw));
     if (msg.type === "prompt") {
       emit({ type: "message", message: { id: `u-${Date.now()}`, from: "you", text: msg.text } });
-      enforce = msg.enforce !== false;
-      handlePrompt(msg.text);
+      handlePrompt(msg.text, msg.enforce !== false);
     }
   });
 });
