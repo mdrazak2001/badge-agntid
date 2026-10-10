@@ -223,14 +223,17 @@ async function runAgent({ mcp, tools, employee, request, from = null, depth = 0 
 
 async function handlePrompt(text) {
   const mention = text.match(/@(\w+)/)?.[1]?.toLowerCase();
-  const employee =
-    EMPLOYEES.find((e) => e.id === mention || e.name.split(" ")[0].toLowerCase() === mention) ?? EMPLOYEES[0];
+  const target = EMPLOYEES.find((e) => e.id === mention || e.name.split(" ")[0].toLowerCase() === mention);
+  // No @mention in the group chat: every employee takes the message, one after another.
+  const team = target ? [target] : EMPLOYEES;
   try {
-    const mcp = await connect(`badge-${employee.id}`);
+    const mcp = await connect("badge");
     // Notion reads fail upstream (the runtime sends null optionals), so hide them.
     const hidden = new RegExp(process.env.BADGE_HIDE_TOOLS ?? "^notion_API-(post-search|get-block-children|retrieve)");
     const tools = (await mcp.listTools()).filter((t) => !GLUE.test(t.name) && !hidden.test(t.name));
-    await runAgent({ mcp, tools, employee, request: text.replace(/@\w+\s*/, "") });
+    for (const employee of team) {
+      await runAgent({ mcp, tools, employee, request: text.replace(/@\w+\s*/, ""), depth: target ? 0 : 1 });
+    }
   } catch (err) {
     emit({ type: "error", message: String(err?.message ?? err) });
   } finally {
