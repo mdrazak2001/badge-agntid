@@ -5,6 +5,7 @@ import OpenAI from "openai";
 import { WebSocketServer } from "ws";
 import { connect } from "./mcp.mjs";
 import { EMPLOYEES } from "./employees.mjs";
+import { startLiveMeeting } from "./live-meeting.mjs";
 
 const PORT = Number(process.env.BADGE_WS_PORT || 8787);
 const MODEL = process.env.OPENAI_MODEL || "gpt-5-mini";
@@ -230,7 +231,11 @@ async function handlePrompt(text) {
     const mcp = await connect("badge");
     // Notion reads fail upstream (the runtime sends null optionals), so hide them.
     const hidden = new RegExp(process.env.BADGE_HIDE_TOOLS ?? "^notion_API-(post-search|get-block-children|retrieve)");
-    const tools = (await mcp.listTools()).filter((t) => !GLUE.test(t.name) && !hidden.test(t.name));
+    const onSomeBadge = new Set(EMPLOYEES.flatMap((e) => e.toolAllowlist ?? []));
+    const canonical = (name) => name.replace("_", ".");
+    const tools = (await mcp.listTools()).filter(
+      (t) => !GLUE.test(t.name) && !hidden.test(t.name) && (onSomeBadge.has(canonical(t.name)) || t.name.startsWith("meeting_")),
+    );
     for (const employee of team) {
       await runAgent({ mcp, tools, employee, request: text.replace(/@\w+\s*/, ""), depth: target ? 0 : 1 });
     }
@@ -255,3 +260,5 @@ wss.on("connection", (ws) => {
 });
 
 console.log(`BADGE live server on ws://localhost:${PORT} · model ${MODEL}`);
+
+startLiveMeeting({ emit, openai, model: MODEL, connect, openBadge, parseCall, employees: EMPLOYEES });

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useFirm, type Employee, type Item } from "./useFirm";
+import { MeetingMic } from "./MeetingMic";
 import "./firm.css";
 
 const HUE: Record<string, string> = { cmo: "#ff5fa2", analyst: "#4f8bff", cto: "#ff8a3d", you: "#e8e8ea" };
@@ -96,7 +97,7 @@ export default function Firm() {
   const visible = firm.items.filter((it) => {
     if (channel === "all") return true;
     if (it.kind === "msg") return it.from === channel || it.from === "you";
-    if (it.kind === "call") return it.agent === channel;
+    if (it.kind === "call" || it.kind === "heard") return it.agent === channel;
     return it.from === channel || it.to === channel;
   });
 
@@ -207,6 +208,16 @@ export default function Firm() {
                 </div>
               );
             }
+            if (it.kind === "heard") {
+              return (
+                <div key={it.id} className="heard">
+                  <Blob id={it.agent} size={18} />
+                  <span>{byId[it.agent]?.name.split(" ")[0]} heard</span>
+                  <em className={`t-${it.topic}`}>{it.topic}</em>
+                  <q>{it.text}</q>
+                </div>
+              );
+            }
             if (it.kind === "handoff") {
               return (
                 <div key={it.id} className="handoff">
@@ -248,6 +259,7 @@ export default function Firm() {
         {firm.error && <p className="err">{firm.error}</p>}
       </main>
 
+      <MeetingMic employees={firm.employees} utterances={firm.utterances} routes={firm.routes} hue={HUE} />
       <aside className="guard">
         <div className="guard-head">
           <span className="logo big">◆</span>

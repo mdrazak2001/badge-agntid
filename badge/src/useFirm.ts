@@ -27,7 +27,8 @@ export type Item =
       url: string | null;
       ts: number;
     }
-  | { kind: "handoff"; id: string; from: string; to: string; request: string; ts: number };
+  | { kind: "handoff"; id: string; from: string; to: string; request: string; ts: number }
+  | { kind: "heard"; id: string; agent: string; topic: string; text: string; ts: number };
 
 export function useFirm() {
   const [connected, setConnected] = useState(false);
@@ -36,6 +37,8 @@ export function useFirm() {
   const [active, setActive] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [utterances, setUtterances] = useState<{ id: string; text: string; topic: string }[]>([]);
+  const [routes, setRoutes] = useState<{ utterance: string; agent: string; topic: string; verdict: string; reason: string | null }[]>([]);
   const ws = useRef<WebSocket | null>(null);
 
   useEffect(() => {
@@ -92,6 +95,15 @@ export function useFirm() {
               ),
             );
             break;
+          case "utterance":
+            setUtterances((p) => [...p, ev.utterance]);
+            break;
+          case "route":
+            setRoutes((p) => [...p, ev.route]);
+            break;
+          case "heard":
+            setItems((p) => [...p, { kind: "heard", ...ev.heard, ts }]);
+            break;
           case "done":
             setBusy(false);
             break;
@@ -117,5 +129,5 @@ export function useFirm() {
     ws.current.send(JSON.stringify({ type: "prompt", text, enforce }));
   }
 
-  return { connected, employees, items, active, busy, error, send, clear: () => setItems([]) };
+  return { connected, employees, items, active, busy, error, utterances, routes, send, clear: () => setItems([]) };
 }

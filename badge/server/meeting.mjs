@@ -60,6 +60,13 @@ function server() {
 
 const app = express();
 app.use(express.json());
+// Live meeting: the BADGE server posts each transcribed sentence here, tagged by topic.
+app.post("/ingest", (req, res) => {
+  const { topic, text } = req.body ?? {};
+  if (!MEETING[topic] || topic === "title" || !text) return res.status(400).json({ ok: false });
+  MEETING[topic].push(`(live) ${text}`);
+  res.json({ ok: true });
+});
 app.post("/mcp", async (req, res) => {
   const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
   res.on("close", () => transport.close());
