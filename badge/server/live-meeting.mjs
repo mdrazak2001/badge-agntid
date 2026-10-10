@@ -10,16 +10,22 @@ const MEETING_URL = process.env.MEETING_URL || "http://localhost:8790";
 const TOPIC_EMOJI = { finance: "💰", marketing: "📣", engineering: "🛠️", people: "🔒" };
 
 export function startLiveMeeting({ emit, openai, model, connect, openBadge, parseCall, notionPageArgs, employees }) {
-  // One AgntID task + badge per employee for the whole meeting.
+  // AgntID expires idle tasks, so each employee's meeting badge is reused for at
+  // most 30s and then reopened.
+  const BADGE_TTL_MS = 30_000;
   const badges = new Map();
   let mcpPromise = null;
   const mcp = () => (mcpPromise ??= connect("badge-meeting"));
 
-  async function badgeFor(employee) {
-    if (!badges.has(employee.id)) {
-      badges.set(employee.id, openBadge(await mcp(), employee, "Listen to the leadership meeting for my role", "meeting"));
+  async function badgeFor(employee, fresh = false) {
+    const cached = badges.get(employee.id);
+    if (fresh || !cached || Date.now() - cached.at > BADGE_TTL_MS) {
+      badges.set(employee.id, {
+        at: Date.now(),
+        badge: openBadge(await mcp(), employee, "Listen to the leadership meeting for my role", "meeting"),
+      });
     }
-    return badges.get(employee.id);
+    return badges.get(employee.id).badge;
   }
 
   async function topicOf(text) {
@@ -53,13 +59,19 @@ export function startLiveMeeting({ emit, openai, model, connect, openBadge, pars
 
     await Promise.all(
       employees.map(async (employee) => {
-        const { taskId, delegationId } = await badgeFor(employee);
-        const raw = await (await mcp()).call(`Meeting_${topic}_notes`, {
-          kwargs: "",
-          agntid_task_id: taskId,
-          ...(delegationId ? { agntid_delegation_id: delegationId } : {}),
-        });
-        const result = parseCall(raw);
+        const hear = async (fresh) => {
+          const badge = await badgeFor(employee, fresh);
+          const raw = await (await mcp()).call(`Meeting_${topic}_notes`, {
+            kwargs: "",
+            agntid_task_id: badge.taskId,
+            ...(badge.delegationId ? { agntid_delegation_id: badge.delegationId } : {}),
+          });
+          return { badge, result: parseCall(raw) };
+        };
+        let { badge, result } = await hear(false);
+        // Stale task: reopen the badge and ask AgntID once more.
+        if (/expired|closed|unknown|cannot be attributed/i.test(result.reason ?? "")) ({ badge, result } = await hear(true));
+        const { taskId, delegationId } = badge;
         emit({
           type: "route",
           route: { utterance: id, agent: employee.id, topic, verdict: result.verdict, reason: result.reason, steps: result.steps },
