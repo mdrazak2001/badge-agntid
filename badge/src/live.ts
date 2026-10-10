@@ -26,6 +26,13 @@ type RawScan = {
   eventId?: string | null;
 };
 
+// Runtime tool names are `<serverId>_<tool>`; Supabase was registered as `remote`.
+const SERVER_LABELS: Record<string, string> = { remote: "supabase", notion: "notion", github: "github" };
+function displayTool(name: string): string {
+  const [server, ...rest] = name.split("_");
+  return server in SERVER_LABELS ? `${SERVER_LABELS[server]}.${rest.join("_")}` : name;
+}
+
 function toScan(raw: RawScan): LiveScan {
   const args = Object.entries(raw.args ?? {})
     .map(([k, v]) => `${k} = ${typeof v === "string" ? v : JSON.stringify(v)}`)
@@ -34,7 +41,7 @@ function toScan(raw: RawScan): LiveScan {
   return {
     id: raw.id,
     agent: raw.agent,
-    tool: raw.tool,
+    tool: displayTool(raw.tool),
     args,
     kind: kindOf(raw.tool, args),
     verdict: raw.verdict === "deny" ? "deny" : "allow",

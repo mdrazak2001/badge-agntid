@@ -1,6 +1,39 @@
 import { Xray } from "./Xray.tsx";
-import type { AgentId, ScanEvent } from "./types";
+import type { AgentId, LiveScan, PipelineStep, ScanEvent, ScanVerdict } from "./types";
 import { AGENTS } from "./script";
+
+const CHECKPOINTS = [
+  { id: "guardrail_validation", label: "Guard" },
+  { id: "intent_parsing", label: "Intent" },
+  { id: "policy_evaluation", label: "Policy" },
+  { id: "credential_resolution", label: "Creds" },
+  { id: "tool_execution", label: "Exec" },
+] as const;
+
+function stepsOf(scan: ScanEvent | null): PipelineStep[] | undefined {
+  if (!scan || !("steps" in scan)) return undefined;
+  return (scan as LiveScan).steps;
+}
+
+type Phase = "idle" | "scanning" | "settled";
+
+function lampOf(
+  step: PipelineStep | undefined,
+  phase: Phase,
+  verdict: ScanVerdict | undefined,
+  index: number,
+  hasSteps: boolean,
+) {
+  if (step) {
+    if (/fail|denied|block|reject/i.test(step.status)) return "fail";
+    if (/hitl|review/i.test(step.status)) return "review";
+    return "pass";
+  }
+  if (phase === "idle") return "off";
+  if (hasSteps && phase === "settled") return "off";
+  if (verdict === "deny" && index === 2 && phase === "settled") return "fail";
+  return "pass";
+}
 
 type Props = {
   current: ScanEvent | null;
@@ -36,6 +69,7 @@ export function ScanBay({
       : current;
   const leaked = Boolean(current && current.verdict === "deny" && !enforced);
   const denied = shown?.verdict === "deny";
+  const pipeline = stepsOf(shown);
 
   return (
     <aside className="bay">
@@ -71,7 +105,33 @@ export function ScanBay({
           <div className="case-lid" />
           <div className="case-body">
             {shown ? (
-              <Xray kind={shown.kind} verdict={shown.verdict} />
+              <>
+                <Xray kind={shown.kind} verdict={shown.verdict} />
+                <ol className={`checks ${phase}`} key={shown.id}>
+                  {CHECKPOINTS.map((cp, i) => {
+                    const step = pipeline?.find((s) => s.step === cp.id);
+                    const lamp = lampOf(step, phase, shown.verdict, i, Boolean(pipeline?.length));
+                    const conf =
+                      cp.id === "intent_parsing" && step?.confidence != null
+                        ? step.confidence > 1
+                          ? Math.round(step.confidence)
+                          : Math.round(step.confidence * 100)
+                        : null;
+                    return (
+                      <li
+                        key={cp.id}
+                        className={`chk ${lamp}`}
+                        style={{ animationDelay: `${i * 140}ms` }}
+                        title={step?.reason ?? cp.id}
+                      >
+                        <span className="lamp" />
+                        <span className="chk-label">{cp.label}</span>
+                        {conf != null && <span className="conf">{conf}</span>}
+                      </li>
+                    );
+                  })}
+                </ol>
+              </>
             ) : (
               <p className="empty-scan">No bag on the belt</p>
             )}
