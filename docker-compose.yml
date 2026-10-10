@@ -49,6 +49,8 @@ services:
       - RUSE_MCP_SIMULATION_ENDPOINT=http://127.0.0.1:8000/mcp
       - INTENT_PARSER_V2_CLASSIFY_URL=http://achr-intent-parser:8000
       - INTENT_PARSER_V2_CLASSIFY_TIMEOUT_MS=${INTENT_PARSER_V2_CLASSIFY_TIMEOUT_MS:-10000}
+      # BADGE: the NLI intent tier denies on-task calls (see intent-repro.md); off for the demo.
+      - INTENT_PARSER_ENABLED=${INTENT_PARSER_ENABLED:-false}
       # BADGE: secrets for MCP servers, referenced in the portal as ${NAME}.
       # Values come from ./.env next to this file (not committed).
       - NOTION_TOKEN=${NOTION_TOKEN:-}
