@@ -1,9 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { ScanBay } from "./ScanBay.tsx";
+import { useLive } from "./live";
 import { AGENTS, BEATS } from "./script";
 import type { AgentId, ChatMessage, ScanEvent } from "./types";
 
 export default function App() {
+  const live = useLive();
+  const [mode, setMode] = useState<"live" | "script">("script");
+  const [draft, setDraft] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [log, setLog] = useState<ScanEvent[]>([]);
   const [current, setCurrent] = useState<ScanEvent | null>(null);
@@ -18,7 +22,7 @@ export default function App() {
 
   useEffect(() => {
     threadRef.current?.scrollTo({ top: threadRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages, current]);
+  }, [messages, current, live.messages, live.current]);
 
   function clearTimers() {
     timers.current.forEach((id) => window.clearTimeout(id));
@@ -66,6 +70,11 @@ export default function App() {
 
   useEffect(() => () => clearTimers(), []);
 
+  const isLive = mode === "live";
+  const view = isLive
+    ? { messages: live.messages, log: live.log, current: live.current, phase: live.phase, active: live.active, inject: null }
+    : { messages, log, current, phase, active, inject };
+
   return (
     <div className="shell">
       <header className="mast">
@@ -75,9 +84,14 @@ export default function App() {
           <span className="sep">/</span>
           <span>the firm</span>
         </div>
-        <button type="button" className="run" onClick={play} disabled={playing}>
-          {playing ? "Briefing live" : done ? "Replay briefing" : "Run launch briefing"}
+        <button type="button" className="run" onClick={() => setMode(isLive ? "script" : "live")}>
+          {isLive ? (live.connected ? "● Live · AgntID" : "○ Live · server offline") : "Scripted"}
         </button>
+        {!isLive && (
+          <button type="button" className="run" onClick={play} disabled={playing}>
+            {playing ? "Briefing live" : done ? "Replay briefing" : "Run launch briefing"}
+          </button>
+        )}
         <p className="mast-note">
           Three employees. One AgntID runtime. Access is a badge, not a session.
         </p>
@@ -89,7 +103,7 @@ export default function App() {
           {AGENTS.map((agent) => (
             <article
               key={agent.id}
-              className={`employee ${agent.id} ${active === agent.id ? "live" : ""}`}
+              className={`employee ${agent.id} ${view.active === agent.id ? "live" : ""}`}
             >
               <div className={`avatar ${agent.id}`} aria-hidden="true">
                 {agent.role.slice(0, 1)}
@@ -116,13 +130,13 @@ export default function App() {
             <h2>#launch-brief</h2>
           </header>
           <div className="messages" ref={threadRef}>
-            {messages.length === 0 && (
+            {view.messages.length === 0 && !isLive && (
               <p className="idle-copy">
                 Press run. Mira will try the warehouse. Arun will be allowed the sums and denied the
                 cards. Then a page will try to leave the building with the users table.
               </p>
             )}
-            {messages.map((m) => (
+            {view.messages.map((m) => (
               <article key={m.id} className={`msg ${m.from}`}>
                 <p className="who">
                   {m.from === "you"
@@ -133,16 +147,34 @@ export default function App() {
               </article>
             ))}
           </div>
+          {isLive && (
+            <form
+              className="composer"
+              onSubmit={(e) => {
+                e.preventDefault();
+                live.send(draft);
+                setDraft("");
+              }}
+            >
+              <input
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                placeholder={live.busy ? "Working…" : "Message the firm — @mira, @arun, @jules"}
+                disabled={!live.connected || live.busy}
+              />
+              {live.error && <p className="live-error">{live.error}</p>}
+            </form>
+          )}
         </section>
 
         <ScanBay
-          current={current}
-          log={log}
-          phase={phase}
+          current={view.current}
+          log={view.log}
+          phase={view.phase}
           enforced={enforced}
           onToggle={() => setEnforced((v) => !v)}
-          inject={inject}
-          active={active}
+          inject={view.inject}
+          active={view.active}
         />
       </div>
     </div>

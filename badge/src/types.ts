@@ -39,3 +39,19 @@ export type Beat =
   | { at: number; type: "scan"; scan: ScanEvent }
   | { at: number; type: "active"; agent: AgentId | null }
   | { at: number; type: "inject"; note: string };
+
+export type PipelineStep = {
+  step: string;
+  status: string;
+  reason: string | null;
+  confidence: number | null;
+  policy: string | null;
+};
+
+// Live events from server/index.mjs. A live scan carries AgntID's real pipeline.
+export type LiveScan = ScanEvent & {
+  steps?: PipelineStep[];
+  durationMs?: number | null;
+  eventId?: string | null;
+  verdictRaw?: "allow" | "deny" | "review";
+};

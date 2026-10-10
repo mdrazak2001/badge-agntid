@@ -182,3 +182,11 @@
     border-right-color: var(--border);
   }
 }
+
+.composer { padding: 12px 0 0; border-top: 1px solid #ffffff14; }
+.composer input {
+  width: 100%; padding: 12px 14px; font: inherit; font-size: 15px; color: #eef;
+  background: #ffffff0d; border: 1px solid #ffffff22; border-radius: 10px; outline: none;
+}
+.composer input:focus { border-color: #7dff9a88; }
+.live-error { color: #ff6b5b; font-size: 13px; margin-top: 6px; }
