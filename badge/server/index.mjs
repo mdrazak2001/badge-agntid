@@ -234,7 +234,7 @@ async function handlePrompt(text) {
     const onSomeBadge = new Set(EMPLOYEES.flatMap((e) => e.toolAllowlist ?? []));
     const canonical = (name) => name.replace("_", ".");
     const tools = (await mcp.listTools()).filter(
-      (t) => !GLUE.test(t.name) && !hidden.test(t.name) && (onSomeBadge.has(canonical(t.name)) || t.name.startsWith("meeting_")),
+      (t) => !GLUE.test(t.name) && !hidden.test(t.name) && (onSomeBadge.has(canonical(t.name)) || t.name.toLowerCase().startsWith("meeting_")),
     );
     for (const employee of team) {
       await runAgent({ mcp, tools, employee, request: text.replace(/@\w+\s*/, ""), depth: target ? 0 : 1 });

@@ -52,7 +52,8 @@ export function startLiveMeeting({ emit, openai, model, connect, openBadge, pars
     await Promise.all(
       employees.map(async (employee) => {
         const { taskId, delegationId } = await badgeFor(employee);
-        const raw = await (await mcp()).call(`meeting_${topic}_notes`, {
+        const raw = await (await mcp()).call(`Meeting_${topic}_notes`, {
+          kwargs: "",
           agntid_task_id: taskId,
           ...(delegationId ? { agntid_delegation_id: delegationId } : {}),
         });
