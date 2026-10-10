@@ -201,3 +201,6 @@
 .heard span { font-weight: 600; color: var(--text); }
 .heard em { font-style: normal; font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; padding: 1px 7px; border-radius: 99px; background: #ffffff12; }
 .heard q { color: #d6d6dc; }
+.heard .filed { margin-left: 4px; font-size: 12px; font-weight: 700; color: var(--ok); text-decoration: none; padding: 2px 8px; border-radius: 99px; background: #3ddc841a; border: 1px solid #3ddc8455; white-space: nowrap; }
+.heard .filed.fail { color: var(--bad); background: #ff4d5e14; border-color: #ff4d5e55; }
+.heard { flex-wrap: wrap; }

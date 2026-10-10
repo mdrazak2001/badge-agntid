@@ -215,6 +215,14 @@ export default function Firm() {
                   <span>{byId[it.agent]?.name.split(" ")[0]} heard</span>
                   <em className={`t-${it.topic}`}>{it.topic}</em>
                   <q>{it.text}</q>
+                  {it.filed !== undefined &&
+                    (it.filed ? (
+                      <a className="filed" href={it.filed} target="_blank" rel="noreferrer">
+                        📝 filed in Notion ↗
+                      </a>
+                    ) : (
+                      <span className="filed fail">notion write failed</span>
+                    ))}
                 </div>
               );
             }

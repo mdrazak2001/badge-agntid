@@ -28,7 +28,7 @@ export type Item =
       ts: number;
     }
   | { kind: "handoff"; id: string; from: string; to: string; request: string; ts: number }
-  | { kind: "heard"; id: string; agent: string; topic: string; text: string; ts: number };
+  | { kind: "heard"; id: string; agent: string; topic: string; text: string; ts: number; filed?: string | null };
 
 export function useFirm() {
   const [connected, setConnected] = useState(false);
@@ -103,6 +103,11 @@ export function useFirm() {
             break;
           case "heard":
             setItems((p) => [...p, { kind: "heard", ...ev.heard, ts }]);
+            break;
+          case "filed":
+            setItems((p) =>
+              p.map((it) => (it.kind === "heard" && it.id === ev.filed.heard ? { ...it, filed: ev.filed.url ?? "" } : it)),
+            );
             break;
           case "done":
             setBusy(false);

@@ -7,7 +7,9 @@ const TOPICS = ["finance", "marketing", "engineering", "people"];
 const AUDIO_PORT = Number(process.env.BADGE_AUDIO_PORT || 8788);
 const MEETING_URL = process.env.MEETING_URL || "http://localhost:8790";
 
-export function startLiveMeeting({ emit, openai, model, connect, openBadge, parseCall, employees }) {
+const TOPIC_EMOJI = { finance: "💰", marketing: "📣", engineering: "🛠️", people: "🔒" };
+
+export function startLiveMeeting({ emit, openai, model, connect, openBadge, parseCall, notionPageArgs, employees }) {
   // One AgntID task + badge per employee for the whole meeting.
   const badges = new Map();
   let mcpPromise = null;
@@ -63,7 +65,30 @@ export function startLiveMeeting({ emit, openai, model, connect, openBadge, pars
           route: { utterance: id, agent: employee.id, topic, verdict: result.verdict, reason: result.reason, steps: result.steps },
         });
         if (result.verdict !== "deny") {
-          emit({ type: "heard", heard: { id: `${id}-${employee.id}`, agent: employee.id, topic, text } });
+          const heardId = `${id}-${employee.id}`;
+          emit({ type: "heard", heard: { id: heardId, agent: employee.id, topic, text } });
+          // The employee files what it heard into its own Notion notes page, under its own badge.
+          if (employee.notesPage) {
+            const time = new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+            const write = await (await mcp()).call("notion_API-post-page", {
+              ...notionPageArgs({
+                title: `${TOPIC_EMOJI[topic]} ${time} · ${text}`.slice(0, 120),
+                markdown: `# Heard in the leadership meeting (${topic})
+${text}
+- Filed by ${employee.name} (${employee.role})
+- Delivered by AgntID under badge: ${(employee.toolAllowlist ?? []).join(", ")}`,
+                parentId: employee.notesPage,
+                emoji: TOPIC_EMOJI[topic],
+              }),
+              agntid_task_id: taskId,
+              ...(delegationId ? { agntid_delegation_id: delegationId } : {}),
+            });
+            const w = parseCall(write);
+            emit({
+              type: "filed",
+              filed: { heard: heardId, agent: employee.id, verdict: w.verdict, url: typeof w.payload?.url === "string" ? w.payload.url : null },
+            });
+          }
         }
       }),
     );

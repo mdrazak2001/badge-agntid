@@ -59,7 +59,7 @@ function parseCall(msg) {
 // Notion's raw post-page schema is hostile to models, so agents see a simple
 // title + markdown tool; it still executes as notion_API-post-page via AgntID.
 const NOTION_PUBLISH = "notion_API-post-page";
-function notionPageArgs({ title, markdown }) {
+function notionPageArgs({ title, markdown, parentId, emoji = "🚀" }) {
   const blocks = String(markdown ?? "")
     .split(/\n+/)
     .filter(Boolean)
@@ -72,10 +72,10 @@ function notionPageArgs({ title, markdown }) {
       return { object: "block", type, [type]: { rich_text: [{ type: "text", text: { content: text.slice(0, 1900) } }] } };
     });
   return {
-    parent: JSON.stringify({ page_id: process.env.NOTION_PARENT_PAGE_ID }),
+    parent: JSON.stringify({ page_id: parentId ?? process.env.NOTION_PARENT_PAGE_ID }),
     properties: JSON.stringify({ title: [{ text: { content: String(title ?? "Untitled").slice(0, 200) } }] }),
     children: blocks.length ? blocks : [{ object: "block", type: "paragraph", paragraph: { rich_text: [] } }],
-    icon: JSON.stringify({ type: "emoji", emoji: "🚀" }),
+    icon: JSON.stringify({ type: "emoji", emoji }),
     cover: JSON.stringify({ type: "external", external: { url: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1600" } }),
   };
 }
@@ -261,4 +261,4 @@ wss.on("connection", (ws) => {
 
 console.log(`BADGE live server on ws://localhost:${PORT} · model ${MODEL}`);
 
-startLiveMeeting({ emit, openai, model: MODEL, connect, openBadge, parseCall, employees: EMPLOYEES });
+startLiveMeeting({ emit, openai, model: MODEL, connect, openBadge, parseCall, notionPageArgs, employees: EMPLOYEES });

@@ -10,6 +10,7 @@ const house =
 export const EMPLOYEES = [
   {
     id: "cmo",
+    notesPage: "3f5cfb25-2136-80d9-b6ea-f04de0c221b4",
     // The task prompt AgntID's intent model checks every call against.
     intent: "Draft launch copy and publish it to Notion",
     name: "Mira Voss",
@@ -20,22 +21,24 @@ export const EMPLOYEES = [
   },
   {
     id: "analyst",
+    notesPage: "3f5cfb25-2136-8095-a01b-dfc3c09d1b77",
     // The task prompt AgntID's intent model checks every call against.
     intent: "Use execute_sql to report September revenue by channel from the payments table",
     name: "Arun Shah",
     role: "Analyst",
     clearance: ["supabase.sql", "supabase.tables"],
-    toolAllowlist: ["Meeting.finance_notes", "remote.execute_sql", "remote.list_tables"],
+    toolAllowlist: ["Meeting.finance_notes", "notion.API-post-page", "remote.execute_sql", "remote.list_tables"],
     system: `You are Arun, the data analyst. You query the Supabase "payments" table (channel, amount, email, card_last4, paid_at) with execute_sql. The schema is known, so never query information_schema; go straight to the payments table. Report aggregates. ${house}`,
   },
   {
     id: "cto",
+    notesPage: "3f5cfb25-2136-800d-b816-ec72259f1e4f",
     // The task prompt AgntID's intent model checks every call against.
     intent: "Review the Supabase database schema and migrations",
     name: "Jules Okonkwo",
     role: "CTO",
     clearance: ["supabase.schema", "notion.read"],
-    toolAllowlist: ["Meeting.engineering_notes", "remote.list_tables", "remote.list_migrations", "remote.list_extensions", "notion.API-get-block-children"],
+    toolAllowlist: ["Meeting.engineering_notes", "notion.API-post-page", "remote.list_tables", "remote.list_migrations", "remote.list_extensions", "notion.API-get-block-children"],
     system: `You are Jules, the CTO. ${house}`,
   },
 ];
