@@ -161,3 +161,8 @@
 .badge-card.denied { animation: deny-pulse 1.2s ease-out; }
 @keyframes deny-pulse { 0%, 40% { box-shadow: 0 0 0 2px var(--bad), 0 0 30px -4px var(--bad); } 100% { box-shadow: none; } }
 .bypass-banner { background: repeating-linear-gradient(-45deg, #ff4d5e, #ff4d5e 12px, #c8243a 12px, #c8243a 24px); color: #fff; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; font-size: 12px; text-align: center; padding: 7px; }
+/* keep each column within the viewport so the feed scrolls */
+.firm { grid-template-rows: 100%; }
+.room, .side, .guard { min-height: 0; height: 100%; }
+.room { overflow: hidden; }
+.feed { min-height: 0; }
