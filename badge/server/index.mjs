@@ -88,6 +88,8 @@ const delegateTool = {
 
 // Each employee works in its own AgntID task (its request is the prompt the intent
 // model checks) under a delegation whose tool_allowlist is the employee's badge.
+let enforce = true;
+
 async function openBadge(mcp, employee, request, from) {
   const taskId = `${employee.id}-${Date.now()}`;
   const delegationId = `${taskId}-badge`;
@@ -104,7 +106,8 @@ async function openBadge(mcp, employee, request, from) {
     parent_agent_id: employee.id,
     acting_agent_id: employee.id,
     delegated_intent: { text: request },
-    tool_allowlist: employee.toolAllowlist,
+    // Bypass mode: no badge, so the employee can reach every approved tool.
+    tool_allowlist: enforce ? employee.toolAllowlist : null,
   });
   const ok = Boolean(r.result?.structuredContent?.result?.ok);
   emit({ type: "task", taskId, agent: employee.id, request, from: from ?? null, badge: employee.toolAllowlist, ok });
@@ -186,7 +189,9 @@ async function handlePrompt(text) {
     EMPLOYEES.find((e) => e.id === mention || e.name.split(" ")[0].toLowerCase() === mention) ?? EMPLOYEES[0];
   try {
     const mcp = await connect(`badge-${employee.id}`);
-    const tools = (await mcp.listTools()).filter((t) => !GLUE.test(t.name));
+    // Notion reads fail upstream (the runtime sends null optionals), so hide them.
+    const hidden = new RegExp(process.env.BADGE_HIDE_TOOLS ?? "^notion_API-(post-search|get-block-children|retrieve)");
+    const tools = (await mcp.listTools()).filter((t) => !GLUE.test(t.name) && !hidden.test(t.name));
     await runAgent({ mcp, tools, employee, request: text.replace(/@\w+\s*/, "") });
   } catch (err) {
     emit({ type: "error", message: String(err?.message ?? err) });
@@ -202,6 +207,7 @@ wss.on("connection", (ws) => {
     const msg = JSON.parse(String(raw));
     if (msg.type === "prompt") {
       emit({ type: "message", message: { id: `u-${Date.now()}`, from: "you", text: msg.text } });
+      enforce = msg.enforce !== false;
       handlePrompt(msg.text);
     }
   });

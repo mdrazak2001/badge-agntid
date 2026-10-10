@@ -113,11 +113,11 @@ export function useLive() {
     };
   }, []);
 
-  function send(text: string) {
+  function send(text: string, enforce = true) {
     if (!ws.current || ws.current.readyState !== 1 || !text.trim()) return;
     setError(null);
     setBusy(true);
-    ws.current.send(JSON.stringify({ type: "prompt", text }));
+    ws.current.send(JSON.stringify({ type: "prompt", text, enforce }));
   }
 
   function reset() {

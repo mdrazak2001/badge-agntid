@@ -152,7 +152,7 @@ export default function App() {
               className="composer"
               onSubmit={(e) => {
                 e.preventDefault();
-                live.send(draft);
+                live.send(draft, enforced);
                 setDraft("");
               }}
             >

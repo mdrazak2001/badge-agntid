@@ -15,7 +15,7 @@ export const EMPLOYEES = [
     role: "CMO",
     clearance: ["notion.read"],
     toolAllowlist: ["notion.API-post-search", "notion.API-get-block-children", "notion.API-retrieve-a-page"],
-    system: `You are Mira, the CMO. You write launch copy from Notion docs. You have no database access; the analyst (Arun) does. ${house}`,
+    system: `You are Mira, the CMO. You write launch copy. The Q3 roadmap (from Notion): launching BADGE Teams on Oct 20, per-agent badges, partner channel push in Q4. You have no database access; the analyst (Arun) does. ${house}`,
   },
   {
     id: "analyst",
