@@ -153,3 +153,5 @@
 .tick.deny b { color: var(--bad); }
 .tick.allow b, .tick.review b { color: var(--ok); }
 .muted { color: var(--mute); font-size: 13px; }
+.call-link { display: inline-block; margin-top: 10px; font-size: 13px; font-weight: 700; color: #fff; background: #ffffff14; border: 1px solid #ffffff22; padding: 6px 12px; border-radius: 99px; text-decoration: none; }
+.call-link:hover { background: #ffffff22; }

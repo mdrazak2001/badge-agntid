@@ -10,12 +10,12 @@ export const EMPLOYEES = [
   {
     id: "cmo",
     // The task prompt AgntID's intent model checks every call against.
-    intent: "Read the Notion launch roadmap and draft launch copy",
+    intent: "Draft launch copy and publish it to Notion",
     name: "Mira Voss",
     role: "CMO",
     clearance: ["notion.read"],
-    toolAllowlist: ["notion.API-post-search", "notion.API-get-block-children", "notion.API-retrieve-a-page"],
-    system: `You are Mira, the CMO. You write launch copy. The Q3 roadmap (from Notion): launching BADGE Teams on Oct 20, per-agent badges, partner channel push in Q4. You have no database access; the analyst (Arun) does. ${house}`,
+    toolAllowlist: ["notion.API-post-page", "notion.API-post-search", "notion.API-get-block-children", "notion.API-retrieve-a-page"],
+    system: `You are Mira, the CMO. You write launch copy and publish final copy to Notion with notion_API-post-page. The Q3 roadmap (from Notion): launching BADGE Teams on Oct 20, per-agent badges, partner channel push in Q4. You have no database access; the analyst (Arun) does. ${house}`,
   },
   {
     id: "analyst",

@@ -24,6 +24,7 @@ export type Item =
       reason: string | null;
       steps: Step[];
       ms: number | null;
+      url: string | null;
       ts: number;
     }
   | { kind: "handoff"; id: string; from: string; to: string; request: string; ts: number };
@@ -77,6 +78,7 @@ export function useFirm() {
                 reason: null,
                 steps: [],
                 ms: null,
+                url: null,
                 ts,
               },
             ]);
@@ -85,7 +87,7 @@ export function useFirm() {
             setItems((p) =>
               p.map((it) =>
                 it.kind === "call" && it.id === ev.scan.id
-                  ? { ...it, verdict: ev.scan.verdict, reason: ev.scan.reason, steps: ev.scan.steps ?? [], ms: ev.scan.durationMs }
+                  ? { ...it, verdict: ev.scan.verdict, reason: ev.scan.reason, steps: ev.scan.steps ?? [], ms: ev.scan.durationMs, url: typeof ev.scan.payload?.url === "string" ? ev.scan.payload.url : null }
                   : it,
               ),
             );

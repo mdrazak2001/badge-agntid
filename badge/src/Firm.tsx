@@ -46,7 +46,9 @@ const prettyTool = (t: string) => t.replace(/^remote_/, "supabase.").replace(/^n
 
 function CallCard({ it, who }: { it: Extract<Item, { kind: "call" }>; who?: Employee }) {
   const sql = typeof it.args.query === "string" ? it.args.query : null;
-  const argText = sql ?? JSON.stringify(it.args);
+  const page = typeof it.args.title === "string" ? `📄 ${it.args.title}
+${String(it.args.markdown ?? "").slice(0, 280)}` : null;
+  const argText = sql ?? page ?? JSON.stringify(it.args);
   const v = it.verdict;
   return (
     <div className={`call ${v}`}>
@@ -70,6 +72,11 @@ function CallCard({ it, who }: { it: Extract<Item, { kind: "call" }>; who?: Empl
         </div>
       )}
       {v === "deny" && <p className="call-reason">{cleanReason(it.reason)}</p>}
+      {it.url && (
+        <a className="call-link" href={it.url} target="_blank" rel="noreferrer">
+          Published to Notion ↗
+        </a>
+      )}
     </div>
   );
 }

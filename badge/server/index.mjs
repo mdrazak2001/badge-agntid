@@ -55,7 +55,45 @@ function parseCall(msg) {
 
 // ---- Agent loop ----------------------------------------------------------------
 
+// Notion's raw post-page schema is hostile to models, so agents see a simple
+// title + markdown tool; it still executes as notion_API-post-page via AgntID.
+const NOTION_PUBLISH = "notion_API-post-page";
+function notionPageArgs({ title, markdown }) {
+  const blocks = String(markdown ?? "")
+    .split(/\n+/)
+    .filter(Boolean)
+    .slice(0, 40)
+    .map((line) => {
+      const h = line.match(/^#+\s*(.*)/);
+      const li = line.match(/^[-*]\s+(.*)/);
+      const type = h ? "heading_2" : li ? "bulleted_list_item" : "paragraph";
+      const text = (h?.[1] ?? li?.[1] ?? line).replace(/\*\*/g, "");
+      return { object: "block", type, [type]: { rich_text: [{ type: "text", text: { content: text.slice(0, 1900) } }] } };
+    });
+  return {
+    parent: JSON.stringify({ page_id: process.env.NOTION_PARENT_PAGE_ID }),
+    properties: JSON.stringify({ title: [{ text: { content: String(title ?? "Untitled").slice(0, 200) } }] }),
+    children: blocks.length ? blocks : [{ object: "block", type: "paragraph", paragraph: { rich_text: [] } }],
+    icon: JSON.stringify({ type: "emoji", emoji: "🚀" }),
+    cover: JSON.stringify({ type: "external", external: { url: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1600" } }),
+  };
+}
+
 function toOpenAITool(t) {
+  if (t.name === NOTION_PUBLISH) {
+    return {
+      type: "function",
+      function: {
+        name: t.name,
+        description: "Publish a new page to the company Notion workspace (Launch Desk).",
+        parameters: {
+          type: "object",
+          properties: { title: { type: "string" }, markdown: { type: "string", description: "Page body; lines starting with # are headings, - are bullets." } },
+          required: ["title", "markdown"],
+        },
+      },
+    };
+  }
   const props = Object.fromEntries(
     Object.entries(t.inputSchema?.properties ?? {}).filter(([k]) => !k.startsWith("agntid_")),
   );
@@ -162,7 +200,7 @@ async function runAgent({ mcp, tools, employee, request, from = null, depth = 0 
           const scanId = `s-${tc.id}`;
           emit({ type: "scan_start", scan: { id: scanId, agent: employee.id, tool: tc.function.name, args } });
           const raw = await mcp.call(tc.function.name, {
-            ...args,
+            ...(tc.function.name === NOTION_PUBLISH ? notionPageArgs(args) : args),
             agntid_task_id: taskId,
             ...(delegationId ? { agntid_delegation_id: delegationId } : {}),
           });
