@@ -114,9 +114,13 @@ export default function Firm() {
   }
 
   const current = channel === "all" ? null : byId[channel];
+  // Most recent blocked call drives the red flash + the offending agent's badge pulse.
+  const lastDeny = [...calls].reverse().find((c) => c.verdict === "deny");
+  const flashKey = lastDeny ? lastDeny.id : "none";
 
   return (
     <div className={`firm ${enforce ? "" : "bypass"}`}>
+      {lastDeny && <div key={flashKey} className="deny-flash" />}
       <aside className="side">
         <div className="side-brand">
           <span className="logo">◆</span> BADGE
@@ -160,6 +164,7 @@ export default function Firm() {
       </aside>
 
       <main className="room">
+        {!enforce && <div className="bypass-banner">AgntID bypassed · agents have every tool</div>}
         <header className="room-head">
           {current ? <Blob id={current.id} size={34} /> : <span className="hash">#</span>}
           <div>
@@ -275,7 +280,8 @@ export default function Firm() {
         <h3>Badges</h3>
         <div className="badges">
           {firm.employees.map((e) => (
-            <div key={e.id} className={`badge-card ${firm.active === e.id ? "live" : ""}`} style={{ ["--c" as string]: HUE[e.id] }}>
+            <div className={`badge-card ${firm.active === e.id ? "live" : ""} ${lastDeny?.agent === e.id ? "denied" : ""}`}
+              key={`${e.id}-${lastDeny?.agent === e.id ? flashKey : ""}`} style={{ ["--c" as string]: HUE[e.id] }}>
               <div className="lanyard" />
               <Blob id={e.id} size={38} />
               <div>
