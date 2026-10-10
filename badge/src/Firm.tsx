@@ -187,10 +187,10 @@ export default function Firm() {
               <button
                 className="suggest"
                 onClick={() =>
-                  setDraft("@mira Draft a two-line launch post for our Q3 launch that cites September revenue by channel from the payments table.")
+                  setDraft("@mira Draft the Q3 launch post with September revenue by channel and publish it to the Launch Desk in Notion.")
                 }
               >
-                Try: “@mira draft the Q3 launch post with September revenue”
+                Try: “@mira Draft the Q3 launch post with September revenue by channel and publish it to the Launch Desk in Notion.”
               </button>
             </div>
           )}
